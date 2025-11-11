@@ -1,0 +1,61 @@
+# This is the docker-compose file for a TeslaMate stack.
+# Make sure to set secure passwords and a new encryption key below.
+
+services:
+  teslamate:
+    image: teslamate/teslamate:latest
+    container_name: teslamate
+    restart: always
+    environment:
+      - ENCRYPTION_KEY=YOUR_SECURE_ENCRYPTION_KEY    # <-- SET A NEW RANDOM KEY
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=YOUR_SECURE_PASSWORD         # <-- SET PASSWORD
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+      - MQTT_HOST=mosquitto
+    ports:
+      - 4000:4000
+    volumes:
+      - ./import:/opt/app/import
+    cap_drop:
+      - all
+
+  database:
+    image: postgres:16  # <-- Use Postgres 16 or newer
+    container_name: teslamate-db
+    restart: always
+    environment:
+      - POSTGRES_USER=teslamate
+      - POSTGRES_PASSWORD=YOUR_SECURE_PASSWORD     # <-- MUST MATCH ABOVE
+      - POSTGRES_DB=teslamate
+    volumes:
+      - teslamate-db:/var/lib/postgresql/data
+
+  grafana:
+    image: teslamate/grafana:latest
+    container_name: teslamate-grafana
+    restart: always
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=YOUR_SECURE_PASSWORD         # <-- MUST MATCH ABOVE
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+    ports:
+      - 3000:3000
+    volumes:
+      - teslamate-grafana-data:/var/lib/grafana
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: teslamate-mqtt
+    restart: always
+    command: mosquitto -c /mosquitto-no-auth.conf
+    volumes:
+      - mosquitto-conf:/mosquitto/config
+      - mosquitto-data:/mosquitto/data
+
+volumes:
+  teslamate-db:
+  teslamate-grafana-data:
+  mosquitto-conf:
+  mosquitto-data:
